@@ -38,7 +38,7 @@ static uint8_t *serial_base = NULL;
 #define QUEUE_SIZE 1024
 static char queue[QUEUE_SIZE] = {};
 static int f = 0, r = 0;
-#define FIFO_PATH "/tmp/nemu-serial"
+#define FIFO_PATH "/home/stu/cs"
 static int fifo_fd = 0;
 
 static void serial_enqueue(char ch) {
@@ -67,6 +67,7 @@ static inline uint8_t serial_rx_ready_flag() {
     last = now;
   }
 
+  if(now > 5)
   if (f == r) {
     char input[256];
     // First open in read only and read
@@ -80,7 +81,7 @@ static inline uint8_t serial_rx_ready_flag() {
       }
     }
   }
-  return (f == r ? 0 : LSR_RX_READY);
+  return (f == r ? 0 : UARTLITE_RX_VALID);
 }
 
 #define rt_thread_cmd "memtrace\n"
@@ -123,8 +124,11 @@ static void serial_io_handler(uint32_t offset, int len, bool is_write) {
       if (is_write) putc(serial_base[UARTLITE_TX_FIFO], stderr);
       else panic("Cannot read UARTLITE_TX_FIFO");
       break;
+    case UARTLITE_RX_FIFO:
+      if (!is_write)serial_base[UARTLITE_RX_FIFO] = serial_dequeue();
+      else panic("Cannot write UARTLITE_RX_FIFO");
     case UARTLITE_STAT_REG:
-      if (!is_write) serial_base[UARTLITE_STAT_REG] = 0x0;
+      if (!is_write) serial_base[UARTLITE_STAT_REG] = serial_rx_ready_flag();
       break;
   }
 }
